@@ -8,7 +8,7 @@ output "region" {
 
 output "rds_hostname" {
   description = "RDS instance hostname."
-  value       = "${aws_db_instance.education.address}-test"
+  value       = "aws_db_instance.education.address"
 }
 
 output "rds_port" {
