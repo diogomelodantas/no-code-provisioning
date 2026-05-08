@@ -27,10 +27,11 @@ resource "tfe_registry_module" "no_code_aws_rds" {
   }
 }
 
-# Enable no-code provisioning for the module, pinned to the configured branch.
+# Enable no-code provisioning. For branch-based modules, omit `version_pin`
+# so the no-code module always uses the latest auto-generated version.
 resource "tfe_no_code_module" "no_code_aws_rds" {
   organization    = var.organization
   registry_module = tfe_registry_module.no_code_aws_rds.id
-  version_pin     = var.module_branch
+  version_pin     = var.version_pin
   enabled         = var.no_code_enabled
 }

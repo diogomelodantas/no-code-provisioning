@@ -48,6 +48,12 @@ variable "module_source_directory" {
   default     = "modules/no-code-aws-rds"
 }
 
+variable "version_pin" {
+  description = "Optional semver version to pin the no-code module to (e.g. `1.2.3`). Leave null to always use the latest published version from the branch."
+  type        = string
+  default     = null
+}
+
 variable "no_code_enabled" {
   description = "Whether no-code provisioning is enabled for the module."
   type        = bool

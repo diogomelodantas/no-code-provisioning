@@ -57,6 +57,7 @@ terraform apply
 | `module_provider` | Module provider namespace | `string` | `aws` |
 | `module_branch` | Branch published as the module source | `string` | `main` |
 | `module_source_directory` | Path within the repo where the module lives (monorepo) | `string` | `modules/no-code-aws-rds` |
+| `version_pin` | Semver version to pin the no-code module to. Leave `null` to track latest. | `string` | `null` |
 | `no_code_enabled` | Enable no-code provisioning | `bool` | `true` |
 
 ## Outputs
