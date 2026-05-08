@@ -1,7 +1,22 @@
-**/.DS_Store
-**/*.tfvars
-**/*.terraform.lock.hcl
-**/*.terraform.lock.hcl.info
-**/*terraform.tfstate
-**/*terraform.tfstate.backup
+# macOS
+.DS_Store
+
+# Terraform variable files (never commit secrets)
+*.tfvars
+*.tfvars.json
+
+# Terraform local state
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfstate.*.backup
+
+# Terraform provider lock & working dirs
+.terraform.lock.hcl
+.terraform.lock.hcl.info
+.terraform/
+crash.log
+crash.*.log
+
+# Plan output
+*.tfplan
 
