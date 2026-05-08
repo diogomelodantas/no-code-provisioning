@@ -4,9 +4,8 @@
 organization             = "your-hcp-terraform-org"
 github_installation_name = "diogomelodantas"
 vcs_repo_identifier      = "diogomelodantas/no-code-provisioning"
-module_name              = "no-code-aws-rds"
-module_provider          = "aws"
-module_branch            = "main"
-module_source_directory  = "modules/no-code-aws-rds"
+module_name             = "no-code-aws-rds"
+module_provider         = "aws"
+module_source_directory = "modules/no-code-aws-rds"
 # version_pin            = "0.0.1" # leave unset to track latest from the branch
 no_code_enabled          = true

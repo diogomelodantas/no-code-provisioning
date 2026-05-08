@@ -7,8 +7,9 @@ data "tfe_github_app_installation" "this" {
   name = var.github_installation_name
 }
 
-# Publish the module from the configured branch into the organization's
-# private registry as a branch-based (non-tagged) module.
+# Publish the module from VCS tags into the organization's private
+# registry. Each tag matching `tags_regex` (default: `v*` semver) becomes a
+# new module version automatically.
 resource "tfe_registry_module" "no_code_aws_rds" {
   organization = var.organization
 
@@ -20,15 +21,14 @@ resource "tfe_registry_module" "no_code_aws_rds" {
   vcs_repo {
     display_identifier         = var.vcs_repo_identifier
     identifier                 = var.vcs_repo_identifier
-    branch                     = var.module_branch
+    tags                       = true
     source_directory           = var.module_source_directory
     github_app_installation_id = data.tfe_github_app_installation.this.id
-    tags                       = false
   }
 }
 
-# Enable no-code provisioning. For branch-based modules, omit `version_pin`
-# so the no-code module always uses the latest auto-generated version.
+# Enable no-code provisioning. Leave `version_pin` null to always use the
+# latest tagged version published to the registry.
 resource "tfe_no_code_module" "no_code_aws_rds" {
   organization    = var.organization
   registry_module = tfe_registry_module.no_code_aws_rds.id

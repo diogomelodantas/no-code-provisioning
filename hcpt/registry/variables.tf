@@ -36,12 +36,6 @@ variable "module_provider" {
   default     = "aws"
 }
 
-variable "module_branch" {
-  description = "Git branch to publish as the no-code module source."
-  type        = string
-  default     = "main"
-}
-
 variable "module_source_directory" {
   description = "Path within the VCS repository where the module source lives (monorepo support)."
   type        = string

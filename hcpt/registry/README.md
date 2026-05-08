@@ -3,7 +3,8 @@
 This Terraform configuration publishes the
 [`modules/no-code-aws-rds`](../../modules/no-code-aws-rds) module to an
 **HCP Terraform** organization's **private registry** and enables it for
-**no-code provisioning**, pinned to a Git branch (default: `main`).
+**no-code provisioning**, using **VCS tags** as version sources (default
+regex: `^v\d+\.\d+\.\d+$`).
 
 ## Layout
 
@@ -55,7 +56,6 @@ terraform apply
 | `vcs_repo_identifier` | VCS repo (`<owner>/<repo>`) holding the module source | `string` | `diogomelodantas/no-code-provisioning` |
 | `module_name` | Registry module name | `string` | `no-code-aws-rds` |
 | `module_provider` | Module provider namespace | `string` | `aws` |
-| `module_branch` | Branch published as the module source | `string` | `main` |
 | `module_source_directory` | Path within the repo where the module lives (monorepo) | `string` | `modules/no-code-aws-rds` |
 | `version_pin` | Semver version to pin the no-code module to. Leave `null` to track latest. | `string` | `null` |
 | `no_code_enabled` | Enable no-code provisioning | `bool` | `true` |
@@ -67,13 +67,18 @@ terraform apply
 | `registry_module_id` | ID of the published private registry module |
 | `registry_module_name` | Fully-qualified `org/name/provider` identifier |
 | `no_code_module_id` | ID of the no-code module configuration |
-| `no_code_module_version_pin` | Branch the no-code module is pinned to |
+| `no_code_module_version_pin` | Semver version the no-code module is pinned to (null = latest) |
 
 ## Notes
 
-- This configuration uses a **branch-based** registry module
-  (`tags = false`), so commits to `main` automatically become the latest
-  module source — no Git tags required.
+- This configuration uses a **tag-based** registry module (`tags = true`).
+  HCP Terraform automatically ingests every Git tag in the repo that
+  parses as semver (with or without a `v` prefix) as a new module version.
+  Push tags like `v0.1.0`, `1.2.3` to publish updates.
+- To cut a new version:
+  ```sh
+  git tag v0.1.0 && git push origin v0.1.0
+  ```
 - The module source lives in a **subdirectory** (`modules/no-code-aws-rds`)
   rather than the repo root. This is supported via the `source_directory`
   argument on `vcs_repo` (currently a **beta** feature in HCP Terraform).

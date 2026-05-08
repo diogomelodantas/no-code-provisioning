@@ -3,7 +3,7 @@
 End-to-end demo of HCP Terraform's [No-Code Provisioning](https://developer.hashicorp.com/terraform/cloud-docs/no-code-provisioning) workflow, fully managed as code:
 
 1. Author a Terraform module under [modules/](modules/).
-2. Publish it to the organization's private registry as a **branch-based no-code module** ([hcpt/registry/](hcpt/registry/)).
+2. Publish it to the organization's private registry as a **tag-based no-code module** ([hcpt/registry/](hcpt/registry/)).
 3. Provision a workspace from that no-code module ([hcpt/workspace/](hcpt/workspace/)) — including project placement, dynamic AWS credentials (OIDC), and managed workspace variables.
 
 ## Repository layout
@@ -21,7 +21,7 @@ End-to-end demo of HCP Terraform's [No-Code Provisioning](https://developer.hash
 | Path | Purpose |
 | --- | --- |
 | [modules/no-code-aws-rds](modules/no-code-aws-rds/) | Example AWS RDS module exposed as a no-code module. |
-| [hcpt/registry](hcpt/registry/) | `tfe_registry_module` (branch-based, monorepo `source_directory`) + `tfe_no_code_module`. |
+| [hcpt/registry](hcpt/registry/) | `tfe_registry_module` (tag-based, monorepo `source_directory`) + `tfe_no_code_module`. |
 | [hcpt/workspace](hcpt/workspace/) | Creates the no-code workspace via the HCP Terraform REST API and manages variables. |
 
 ## How the two configurations fit together
@@ -71,9 +71,9 @@ After the second apply, HCP Terraform queues a run on the new workspace using dy
 
 ## Key design decisions
 
-- **Branch-based publishing.** `tfe_registry_module` uses `vcs_repo.branch` + `tags = false` so the registry tracks `main` instead of git tags.
+- **Tag-based publishing.** `tfe_registry_module` uses `tags = true`, so HCP Terraform ingests every semver Git tag in the repo as a new module version. Push `v0.1.0`, `v0.2.0`, etc. to release.
 - **Monorepo support.** `vcs_repo.source_directory = "modules/no-code-aws-rds"` (currently in beta on the `tfe` provider) lets a single repo host the module alongside the publishing config.
-- **No `version_pin`.** For branch-based modules the no-code module always points at the latest auto-generated version, so `version_pin` is left null.
+- **Optional `version_pin`.** Leave it null on the no-code module to always serve the latest published version; set it (e.g. `0.2.0`) to lock workspaces to a specific tag.
 - **REST API for workspace creation.** The `tfe` provider has no resource that binds a workspace to a no-code module, so [hcpt/workspace](hcpt/workspace/) uses [`Mastercard/restapi`](https://registry.terraform.io/providers/Mastercard/restapi/latest/docs) to call `POST /api/v2/no-code-modules/:id/workspaces`. Lifecycle paths are split: `read` / `update` / `destroy` target `/api/v2/workspaces/:id`.
 - **Variables managed separately.** The create payload omits `vars`; workspace variables are managed by `tfe_variable` resources so updates propagate via `/workspaces/:id/vars` (PATCH on `/workspaces/:id` does **not** accept variable changes).
 - **AWS via OIDC.** The workspace sets the `TFC_AWS_*` env vars so the AWS provider in the no-code module assumes an IAM role at run time. No long-lived AWS credentials are stored.
