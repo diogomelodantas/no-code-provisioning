@@ -136,9 +136,18 @@ locals {
 # Create the no-code workspace via the provisioning API. This is the only
 # way to bind a workspace to a no-code module so HCP Terraform fetches the
 # module configuration automatically.
+#
+# Endpoint paths differ per lifecycle stage:
+#   create  -> POST   /api/v2/no-code-modules/:nocode-id/workspaces
+#   read    -> GET    /api/v2/workspaces/:ws-id
+#   update  -> PATCH  /api/v2/workspaces/:ws-id
+#   destroy -> DELETE /api/v2/workspaces/:ws-id
 resource "restapi_object" "workspace" {
-  path         = "/api/v2/no-code-modules/${local.effective_no_code_module_id}/workspaces"
-  destroy_path = "/api/v2/workspaces/{id}"
-  id_attribute = "data/id"
-  data         = local.workspace_payload
+  path          = "/api/v2/no-code-modules/${local.effective_no_code_module_id}/workspaces"
+  read_path     = "/api/v2/workspaces/{id}"
+  update_path   = "/api/v2/workspaces/{id}"
+  destroy_path  = "/api/v2/workspaces/{id}"
+  update_method = "PATCH"
+  id_attribute  = "data/id"
+  data          = local.workspace_payload
 }
