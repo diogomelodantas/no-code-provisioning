@@ -9,6 +9,7 @@
 terraform.tfstate
 terraform.tfstate.backup
 terraform.tfstate.*.backup
+.terraform.tfstate.lock.info
 
 # Terraform provider lock & working dirs
 .terraform.lock.hcl
