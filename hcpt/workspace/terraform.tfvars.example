@@ -1,0 +1,26 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+organization      = "your-hcp-terraform-org"
+# no_code_module_id is auto-discovered from ../registry/terraform.tfstate.
+# Override only if the registry config lives elsewhere or uses a different state.
+# no_code_module_id   = "nocode-XXXXXXXXXXXXXXXX"
+# registry_state_file = "../registry/terraform.tfstate"
+workspace_name    = "no-code-aws-rds-dev"
+project_name      = null # or "My Project"
+
+# Module inputs
+region      = "us-east-2"
+db_name     = "demo-rds"
+db_username = "admin"
+
+# AWS authentication via HCP Terraform dynamic credentials (OIDC).
+aws_run_role_arn = "arn:aws:iam::123456789012:role/hcp-terraform-no-code-aws-rds"
+# aws_plan_role_arn              = null
+# aws_apply_role_arn             = null
+# aws_workload_identity_audience = null
+
+execution_mode    = "remote"
+auto_apply        = false
+# terraform_version = "~> 1.9"
+# agent_pool_id     = null
