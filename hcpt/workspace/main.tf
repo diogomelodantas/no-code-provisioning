@@ -74,12 +74,12 @@ locals {
     }],
   )
 
-  workspace_vars = [
-    for v in concat(local.workspace_terraform_vars, local.workspace_env_vars) : {
-      type       = "vars"
-      attributes = v
-    }
-  ]
+  # Variables managed post-create by tfe_variable resources (keyed by
+  # "<category>.<key>") so updates propagate via /workspaces/:id/vars.
+  workspace_managed_vars = {
+    for v in concat(local.workspace_terraform_vars, local.workspace_env_vars) :
+    "${v.category}.${v.key}" => v
+  }
 
   workspace_attributes = merge(
     {
@@ -96,14 +96,9 @@ locals {
     data = {
       type       = "workspaces"
       attributes = local.workspace_attributes
-      relationships = merge(
-        local.project_id == null ? {} : {
-          project = { data = { type = "project", id = local.project_id } }
-        },
-        {
-          vars = { data = local.workspace_vars }
-        },
-      )
+      relationships = local.project_id == null ? {} : {
+        project = { data = { type = "project", id = local.project_id } }
+      }
     }
   })
 }
@@ -150,4 +145,19 @@ resource "restapi_object" "workspace" {
   update_method = "PATCH"
   id_attribute  = "data/id"
   data          = local.workspace_payload
+}
+
+# Manage workspace variables via the dedicated /workspaces/:id/vars endpoint
+# so that updates to inputs propagate on subsequent applies. The initial POST
+# above creates the workspace without vars; HCP Terraform will queue runs
+# until these variables land.
+resource "tfe_variable" "this" {
+  for_each = local.workspace_managed_vars
+
+  workspace_id = restapi_object.workspace.id
+  key          = each.value.key
+  value        = each.value.value
+  category     = each.value.category
+  sensitive    = each.value.sensitive
+  description  = "Managed by hcpt/workspace Terraform configuration."
 }
