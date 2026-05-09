@@ -31,6 +31,12 @@ variable "registry_state_file" {
   default     = "../registry/terraform.tfstate"
 }
 
+variable "queue_runs" {
+  description = "Queue an apply run after vars are written, and a destroy run on teardown. Disable to manage runs manually in HCP UI."
+  type        = bool
+  default     = true
+}
+
 variable "project_name" {
   description = "Project to place the workspace in. If null, the default project is used."
   type        = string
@@ -75,6 +81,22 @@ variable "terraform_version" {
   description = "Terraform version for the workspace. Null = latest."
   type        = string
   default     = null
+}
+
+variable "default_tags" {
+  description = "Key-value tags to apply to the HCP Terraform workspace (tag-bindings). Merged with `tags`."
+  type        = map(string)
+  default = {
+    environment = "dev"
+    managed-by  = "terraform"
+    source      = "no-code-provisioning"
+  }
+}
+
+variable "tags" {
+  description = "Additional key-value tags to apply to the HCP Terraform workspace (merged on top of `default_tags`)."
+  type        = map(string)
+  default     = {}
 }
 
 # ---------------------------------------------------------------------------

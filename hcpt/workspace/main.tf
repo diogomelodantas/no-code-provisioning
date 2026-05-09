@@ -92,13 +92,33 @@ locals {
     var.execution_mode == "agent" && var.agent_pool_id != null ? { "agent-pool-id" = var.agent_pool_id } : {},
   )
 
+  # HCP Terraform key-value tags applied to the workspace via the
+  # `tag-bindings` relationship on create. Updates are managed by
+  # `tfe_workspace_settings.this` below.
+  workspace_tags = merge(var.default_tags, var.tags)
+
+  workspace_tag_bindings = [
+    for k, v in local.workspace_tags : {
+      type = "tag-bindings"
+      attributes = {
+        key   = k
+        value = v
+      }
+    }
+  ]
+
   workspace_payload = jsonencode({
     data = {
       type       = "workspaces"
       attributes = local.workspace_attributes
-      relationships = local.project_id == null ? {} : {
-        project = { data = { type = "project", id = local.project_id } }
-      }
+      relationships = merge(
+        local.project_id == null ? {} : {
+          project = { data = { type = "project", id = local.project_id } }
+        },
+        length(local.workspace_tag_bindings) == 0 ? {} : {
+          "tag-bindings" = { data = local.workspace_tag_bindings }
+        },
+      )
     }
   })
 }
@@ -136,15 +156,21 @@ locals {
 #   create  -> POST   /api/v2/no-code-modules/:nocode-id/workspaces
 #   read    -> GET    /api/v2/workspaces/:ws-id
 #   update  -> PATCH  /api/v2/workspaces/:ws-id
-#   destroy -> DELETE /api/v2/workspaces/:ws-id
+#   destroy -> POST   /api/v2/workspaces/:ws-id/actions/safe-delete
+#
+# Using `safe-delete` (instead of plain DELETE) asks HCP Terraform to
+# unbind the workspace from its no-code module before removing it,
+# avoiding the phantom-reference bug that blocks subsequent module
+# deletion.
 resource "restapi_object" "workspace" {
-  path          = "/api/v2/no-code-modules/${local.effective_no_code_module_id}/workspaces"
-  read_path     = "/api/v2/workspaces/{id}"
-  update_path   = "/api/v2/workspaces/{id}"
-  destroy_path  = "/api/v2/workspaces/{id}"
-  update_method = "PATCH"
-  id_attribute  = "data/id"
-  data          = local.workspace_payload
+  path           = "/api/v2/no-code-modules/${local.effective_no_code_module_id}/workspaces"
+  read_path      = "/api/v2/workspaces/{id}"
+  update_path    = "/api/v2/workspaces/{id}"
+  destroy_path   = "/api/v2/workspaces/{id}/actions/safe-delete"
+  destroy_method = "POST"
+  update_method  = "PATCH"
+  id_attribute   = "data/id"
+  data           = local.workspace_payload
 }
 
 # Manage workspace variables via the dedicated /workspaces/:id/vars endpoint
@@ -160,4 +186,30 @@ resource "tfe_variable" "this" {
   category     = each.value.category
   sensitive    = each.value.sensitive
   description  = "Managed by hcpt/workspace Terraform configuration."
+}
+
+# HCP Terraform auto-queues a run the moment the workspace is created, but
+# that first run fires *before* `tfe_variable.this` has written the inputs,
+# so it errors with "No value for required variable". This resource queues
+# a follow-up run after the vars land (apply phase), and queues a destroy
+# run on teardown so the `safe-delete` endpoint can succeed.
+resource "tfe_workspace_run" "this" {
+  count        = var.queue_runs ? 1 : 0
+  workspace_id = restapi_object.workspace.id
+
+  apply {
+    manual_confirm    = false
+    wait_for_run      = true
+    retry_attempts    = 3
+    retry_backoff_min = 5
+  }
+
+  destroy {
+    manual_confirm    = false
+    wait_for_run      = true
+    retry_attempts    = 3
+    retry_backoff_min = 5
+  }
+
+  depends_on = [tfe_variable.this]
 }

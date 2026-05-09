@@ -80,6 +80,9 @@ plan automatically.
 | `aws_plan_role_arn` | Override IAM role for the plan phase | `string` | `null` |
 | `aws_apply_role_arn` | Override IAM role for the apply phase | `string` | `null` |
 | `aws_workload_identity_audience` | Custom OIDC audience | `string` | `null` |
+| `queue_runs` | Queue an apply run after vars land, and a destroy run on teardown | `bool` | `true` |
+| `default_tags` | Default key-value tags applied to the workspace via tag-bindings | `map(string)` | `{environment="dev", managed-by="terraform", source="no-code-provisioning"}` |
+| `tags` | Extra key-value tags merged on top of `default_tags` | `map(string)` | `{}` |
 
 ## Outputs
 
@@ -91,6 +94,27 @@ plan automatically.
 | `no_code_module_id` | The no-code module backing this workspace |
 
 ## Notes & limitations
+
+### Run lifecycle
+
+This config queues runs for you via `tfe_workspace_run.this`:
+
+- **On `terraform apply`:** the no-code endpoint creates the workspace
+  and HCP Terraform auto-queues an initial run *before* the variables
+  land. That first run **always errors** with `"No value for required
+  variable"` and is visible as a stale errored run in the UI — this is
+  expected and harmless. `tfe_variable.this` then writes the inputs,
+  and `tfe_workspace_run.this` queues a second apply run that waits to
+  completion.
+- **On `terraform destroy`:** `tfe_workspace_run.this` queues a
+  destroy run first (waits until AWS resources are removed), then
+  `restapi_object.workspace` calls `POST /workspaces/:id/actions/safe-delete`,
+  which is the managed-resource-aware deletion path that also unbinds
+  the workspace from its no-code module cleanly.
+
+Set `queue_runs = false` to opt out and manage runs manually.
+
+### Other
 
 - **State drift:** the `restapi_object` resource only knows what it
   POSTed. If you change variable values via the HCP Terraform UI later,
